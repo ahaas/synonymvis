@@ -64,19 +64,25 @@ $(document).ready(function() {
             canvas.height/(2*maxY.proj[1]) * 0.9,
             canvas.width/(2*maxX.proj[0]) * 0.9,
         ]);
-        console.log(wordsVectors.length);
+        ctx.rect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#fff'
+        ctx.fill()
         ctx.font = "14px Sans-Serif";
         ctx.fillStyle = '#000'
         _.each(wordsVectors, function(wv) {
+            console.log(wv.word)
             ctx.fillText(
-                wv.word,
+                wv.word.replace('_', ' ').replace('_', ' '),
                 wv.proj[0]*scale+canvas.width/2,
                 wv.proj[1]*scale+canvas.height/2
             );
         });
     }
 
-    $('#input-word-submit').click(function() {
+    $('#input-form').submit(function(e) {
+        e.preventDefault();
+        var l = Ladda.create($('#input-word-button').get(0));
+        l.start();
         var inputWord = $('#input-word').val();
         getWordsAndVectors(inputWord, function(wordsVectors) {
             var vectors = _.pluck(wordsVectors, 'vector');
@@ -89,6 +95,7 @@ $(document).ready(function() {
                 wordsVectors[idx].proj = proj;
             })
             renderWordsVectors(wordsVectors);
+            l.stop();
         });
     });
 });

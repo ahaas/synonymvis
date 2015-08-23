@@ -2,17 +2,40 @@
 <head>
   <title>Synonym Visualizer</title>
   <link rel="stylesheet" type="text/css" href="static/css/styles.css"></link>
+  <!-- Vendor -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/async/1.4.2/async.min.js"></script>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="static/js/lib/ladda/ladda-themeless.min.css"></link>
+  <script src="static/js/lib/ladda/spin.min.js"></script>
+  <script src="static/js/lib/ladda/ladda.min.js"></script>
+
+  <!-- Javascript -->
   <script src="static/js/lib/tsne.js"></script>
   <script src="static/js/word2vec.js"></script>
   <script src="static/js/index.js"></script>
 </head>
-<div>
-  <input id='input-word' type='text'></input>
-  <button id='input-word-submit' type='button'>Submit</button>
-</div>
-<div>
-  <canvas id='synonyms-canvas' width="1000" height="650"></canvas>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h1>Synonym Visualizer</h1>
+      <form class="form-inline" id="input-form">
+        <input class="form-control" id="input-word" type="text" placeholder="word"></input>
+        <button class="btn btn-default ladda-button" id="input-word-button" data-style="expand-right" type="submit">
+          <span class="ladda-label">Submit</span>
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <canvas id="synonyms-canvas" width="1000" height="650"></canvas>
+    </div>
+  </div>
 </div>
