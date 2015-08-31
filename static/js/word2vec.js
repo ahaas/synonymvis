@@ -14,6 +14,10 @@
             );
         },
         getVectors: function(words, cb) {
+            if (words.length === 0) {
+                cb(null, []);
+                return
+            }
             $.getJSON(
                 W2V_API + 'get_vectors/' + words.join(),
                 function(wordsVectors) {

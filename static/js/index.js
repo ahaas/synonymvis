@@ -41,13 +41,26 @@ $(document).ready(function() {
                 ], function (err, wordsVectors) {
                     cb(null, wordsVectors);
                 });
+            },
+            function(cb) {
+                word2vec.getVectors([word], function(err, wordData) {
+                    if (wordData.length === 0) {
+                        cb('Query word not found.');
+                        return
+                    }
+                    wordData[0].isQuery = true;
+                    cb(err, wordData);
+                });
             }
         ], function(err, results) {
-            var wordsVectors = results[0].concat(results[1]);
-            wordsVectors = _.uniq(wordsVectors, function(wv) {
-                return wv.word;
-            });
-            callback(wordsVectors);
+            if (err) {
+                console.log('ASYNC ERROR: ' + err);
+                callback(err);
+                return
+            }
+            var wordData = [].concat.apply([], results);
+            wordData = _.uniq(wordData, function(w) { return w.word; });
+            callback(null, wordData);
         });
     }
 
@@ -65,12 +78,16 @@ $(document).ready(function() {
             canvas.width/(2*maxX.proj[0]) * 0.9,
         ]);
         ctx.rect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#fff'
-        ctx.fill()
-        ctx.font = "14px Sans-Serif";
-        ctx.fillStyle = '#000'
+        ctx.fillStyle = '#fff';
+        ctx.fill();
         _.each(wordsVectors, function(wv) {
-            console.log(wv.word)
+            if (wv.isQuery) {
+                ctx.font = "bold 16px Sans-Serif";
+                ctx.fillStyle = '#0000FF';
+            } else {
+                ctx.font = "14px Sans-Serif";
+                ctx.fillStyle = '#000';
+            }
             ctx.fillText(
                 wv.word.replace('_', ' ').replace('_', ' '),
                 wv.proj[0]*scale+canvas.width/2,
@@ -84,7 +101,11 @@ $(document).ready(function() {
         var l = Ladda.create($('#input-word-button').get(0));
         l.start();
         var inputWord = $('#input-word').val();
-        getWordsAndVectors(inputWord, function(wordsVectors) {
+        getWordsAndVectors(inputWord, function(err, wordsVectors) {
+            if (err) {
+                l.stop();
+                return
+            }
             var vectors = _.pluck(wordsVectors, 'vector');
             var tsne = new tsnejs.tSNE();
             tsne.initDataRaw(vectors);
