@@ -40,7 +40,7 @@
     function getGroupIdxColorMap_(lexiconSynonyms) {
         out = [];
         _.each(lexiconSynonyms, function(synGroup, idx) {
-            var ml = 150;
+            var ml = 140;
             var new_light_color = 'rgb(' + (Math.floor((255-ml)*Math.random()) + ml) + ',' +
                 (Math.floor((255-ml)*Math.random()) + ml) + ',' +
                 (Math.floor((256-ml)*Math.random()) + ml) + ')';
@@ -73,13 +73,15 @@
             ctx.moveTo(start.x, start.y);
             ctx.quadraticCurveTo(control.x, control.y, wv.canvasPos.x+15, wv.canvasPos.y);
             ctx.strokeStyle = getGroupIdxColorMap(lexiconSynonyms)[groupIdx];
+            ctx.lineWidth = 2;
             ctx.stroke();
         });
     }
 
+    // TODO: Use ctx.measureText()
     function decluster(wordsVectors) {
-        var MINDIST = 30;
-        var QUERY_MINDIST = 50;
+        var MINDIST = 50;
+        var QUERY_MINDIST = 100;
         var CONSEC = 100000;
         var wv1, wv2;
         function randomWV() {

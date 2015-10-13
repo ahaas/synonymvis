@@ -37,9 +37,9 @@ $(document).ready(function() {
     function getWordsAndVectors(word, callback) {
         async.parallel([
             // Query word2vec for word's and similar words' vectors.
-            function(cb) {
+            /*function(cb) {
                 word2vec.mostSimilar(word, cb);
-            },
+            },*/
             function(cb) {
                 async.waterfall([
                     // Query Lexicon for more similar words.
