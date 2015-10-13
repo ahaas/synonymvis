@@ -69,56 +69,10 @@ $(document).ready(function() {
                 return
             }
             var wordData = [].concat.apply([], results);
-            wordData = _.uniq(wordData, function(w) { return [w.word, w.isQuery]; });
+            wordData = _.uniq(wordData, function(w) {
+                return w.word + "|" + w.isQuery;
+            });
             callback(null, wordData);
-        });
-    }
-
-    function getWordColor(word, lexiconSynonyms) {
-        var count = 0
-        _.each(lexiconSynonyms, function(synGroup) {
-            if ($.inArray(word, synGroup.synonyms) != -1) {
-                count++;
-            }
-        });
-        if (count == 0) return "#777";
-        if (count == 1) return "#444";
-        if (count == 2) return "#333";
-        if (count == 3) return "#222";
-        if (count == 4) return "#111";
-        return "#000"
-    }
-
-    function renderWordsVectors(wordsVectors, lexiconSynonyms) {
-        var canvas = document.getElementById('synonyms-canvas');
-        var ctx = canvas.getContext('2d');
-
-        var maxX = _.max(wordsVectors, function(wv) {
-            return wv.proj[0];
-        });
-        var maxY = _.max(wordsVectors, function(wv) {
-            return wv.proj[1];
-        });
-        var scale = _.min([
-            canvas.height/(2*maxY.proj[1]) * 0.9,
-            canvas.width/(2*maxX.proj[0]) * 0.9,
-        ]);
-        ctx.rect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#fff';
-        ctx.fill();
-        _.each(wordsVectors, function(wv) {
-            if (wv.isQuery) {
-                ctx.font = "bold 16px Sans-Serif";
-                ctx.fillStyle = '#0000FF';
-            } else {
-                ctx.font = "14px Sans-Serif";
-                ctx.fillStyle = getWordColor(wv.word, lexiconSynonyms);
-            }
-            ctx.fillText(
-                wv.word.replace('_', ' ').replace('_', ' '),
-                wv.proj[0]*scale+canvas.width/2,
-                wv.proj[1]*scale+canvas.height/2
-            );
         });
     }
 
@@ -142,7 +96,11 @@ $(document).ready(function() {
                 wordsVectors[idx].proj = proj;
             })
             getLexiconData(inputWord, function(err, data) {
-                renderWordsVectors(wordsVectors, data.synonyms);
+                renderer.renderWordsVectors(
+                    document.getElementById('synonyms-canvas'),
+                    wordsVectors,
+                    data.synonyms
+                );
                 l.stop();
             });
         });
