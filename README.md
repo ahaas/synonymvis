@@ -5,3 +5,4 @@ Todo:
 * Refactor renderer.js
 * Try to keep query word centered
 * Investigate failure to completely erase previous renders
+* Make choice of colors better (not truely random)
