@@ -7,3 +7,4 @@ Todo:
 * Investigate failure to completely erase previous renders
 * Make choice of colors better (not truely random)
 * Idea: isolate groups. Smaller groups have fainter colors. Darken on mouseover?
+* Smoothly handle words with no results

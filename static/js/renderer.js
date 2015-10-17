@@ -38,13 +38,31 @@
     var getGroupStartAng = _.memoize(getGroupStartAng_);
 
     function getGroupIdxColorMap_(lexiconSynonyms) {
-        out = [];
+        var colorList = [
+            '#FF6961', // red
+            '#779ECB', // blue
+            '#77DD77', // green
+            '#FFB347', // orange
+            '#CB99C9', // violet
+            '#F49AC2', // magenta
+            '#E4E487', // yellow
+            '#CFCFC4', // gray
+        ]
+        var descendingSizeGroups = _.sortBy(lexiconSynonyms, function(group) {
+            return -group.synonyms.length;
+        })
+        var out = [];
         _.each(lexiconSynonyms, function(synGroup, idx) {
-            var ml = 140;
-            var new_light_color = 'rgb(' + (Math.floor((255-ml)*Math.random()) + ml) + ',' +
-                (Math.floor((255-ml)*Math.random()) + ml) + ',' +
-                (Math.floor((256-ml)*Math.random()) + ml) + ')';
-            out[idx] = new_light_color;
+            var groupRank = _.indexOf(descendingSizeGroups, synGroup);
+            if (groupRank < colorList.length) {
+                out[idx] = colorList[groupRank];
+            } else {
+                var ml = 140;
+                var new_light_color = 'rgb(' + (Math.floor((255-ml)*Math.random()) + ml) + ',' +
+                    (Math.floor((255-ml)*Math.random()) + ml) + ',' +
+                    (Math.floor((256-ml)*Math.random()) + ml) + ')';
+                out[idx] = new_light_color;
+            }
         });
         return out;
     }
@@ -71,7 +89,7 @@
             };
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);
-            ctx.quadraticCurveTo(control.x, control.y, wv.canvasPos.x+15, wv.canvasPos.y);
+            ctx.quadraticCurveTo(control.x, control.y, wv.canvasPos.x, wv.canvasPos.y);
             ctx.strokeStyle = getGroupIdxColorMap(lexiconSynonyms)[groupIdx];
             ctx.lineWidth = 2;
             ctx.stroke();
@@ -80,16 +98,32 @@
 
     // TODO: Use ctx.measureText()
     function decluster(wordsVectors) {
-        var MINDIST = 50;
-        var QUERY_MINDIST = 100;
+        var MINDIST_X = 50;
+        var MINDIST_Y = 14
+        var QUERY_MINDIST = 200;
         var CONSEC = 100000;
         var wv1, wv2;
         function randomWV() {
             return wordsVectors[Math.floor(Math.random()*wordsVectors.length)];
         }
+        function tooCloseX(wv1, wv2) {
+            return Math.abs(wv1.canvasPos.x - wv2.canvasPos.x) <
+                   Math.abs(wv1.wordWidth/2 + wv2.wordWidth/2);
+        }
+        function tooCloseY(wv1, wv2) {
+            return Math.abs(wv1.canvasPos.y - wv2.canvasPos.y) < MINDIST_Y + 3;
+        }
         function distWV(wv1, wv2) {
             return Math.sqrt(Math.pow(wv1.canvasPos.x - wv2.canvasPos.x, 2) +
                              Math.pow((wv1.canvasPos.y - wv2.canvasPos.y)*3, 2));
+        }
+        var wvQuery = wordsVectors[0];
+        for (var i=1; i < wordsVectors.length; i++) {
+            wv1 = wordsVectors[i];
+            while (distWV(wvQuery, wv1) < QUERY_MINDIST) {
+                wv1.canvasPos.x += (Math.random()-0.5)*QUERY_MINDIST*0.2;
+                wv1.canvasPos.y += (Math.random()-0.5)*QUERY_MINDIST*0.2;
+            }
         }
         var i = CONSEC;
         while (i > 0) {
@@ -99,18 +133,10 @@
             if (wv1 == wv2) {
                 continue;
             }
-            while (distWV(wv1, wv2) < MINDIST) {
+            while (tooCloseX(wv1, wv2) && tooCloseY(wv1, wv2)) {
                 i = CONSEC;
-                wv1.canvasPos.x += (Math.random()-0.5)*MINDIST*0.5;
-                wv1.canvasPos.y += (Math.random()-0.5)*MINDIST*0.2;
-            }
-        }
-        var wvQuery = wordsVectors[0];
-        for (var i=1; i < wordsVectors.length; i++) {
-            wv1 = wordsVectors[i];
-            while (distWV(wvQuery, wv1) < QUERY_MINDIST) {
-                wv1.canvasPos.x += (Math.random()-0.5)*MINDIST;
-                wv1.canvasPos.y += (Math.random()-0.5)*MINDIST;
+                wv1.canvasPos.x += (Math.random()-0.5)*MINDIST_X*0.2;
+                wv1.canvasPos.y += (Math.random()-0.5)*MINDIST_Y*0.2;
             }
         }
     }
@@ -127,22 +153,29 @@
         chkpt("starting render");
         getGroupStartAng.cache = {};
         getGroupIdxColorMap.cache = {};
+
         var ctx = canvas.getContext('2d');
-        var maxX = _.max(wordsVectors, function(wv) {
-            return wv.proj[0];
+        _.each(wordsVectors, function(wv) {
+            wv.prettyWord = wv.word.replace('_', ' ').replace('_', ' ');
+            ctx.font = "14px Sans-Serif";
+            wv.wordWidth = ctx.measureText(wv.prettyWord).width;
         });
-        var maxY = _.max(wordsVectors, function(wv) {
-            return wv.proj[1];
-        });
+
+        // Find bounds of TSNE projections
+        var minX = _.min(wordsVectors, function(wv) { return wv.proj[0]; }).proj[0];
+        var maxX = _.max(wordsVectors, function(wv) { return wv.proj[0]; }).proj[0];
+        var minY = _.min(wordsVectors, function(wv) { return wv.proj[1]; }).proj[1];
+        var maxY = _.max(wordsVectors, function(wv) { return wv.proj[1]; }).proj[1];
+
+        // Compute transformation parameters
         var scale = _.min([
-            canvas.height/(2*maxY.proj[1]) * 0.8,
-            canvas.width/(2*maxX.proj[0]) * 0.8,
+            canvas.height/(maxY - minY) * 0.95,
+            canvas.width/(maxX - minX) * 0.95,
         ]);
-        ctx.rect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#fff';
-        ctx.fill();
-        ctx.fill();
-        ctx.fill(); // Inexplicably, sometimes the first wipe does not cover everything.
+        var translateX = -(minX + maxX)/2
+        var translateY = -(minY + maxY)/2
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         var wvQuery;
         // Place query wv at the front
         _.all(wordsVectors, function(wv, idx) {
@@ -157,8 +190,8 @@
         // Compute canvas positions for each word
         _.each(wordsVectors, function(wv) {
             wv.canvasPos = {
-                x: wv.proj[0]*scale+canvas.width/2,
-                y: wv.proj[1]*scale+canvas.height/2
+                x: (wv.proj[0]+translateX)*scale+canvas.width/2,
+                y: (wv.proj[1]+translateY)*scale+canvas.height/2
             };
         });
         chkpt("generated canvasPos");
@@ -168,7 +201,7 @@
         // Draw bezier curves first
         _.each(wordsVectors, function(wv) {
             drawBezierCurves(wv, wordsVectors, lexiconSynonyms, ctx,
-                {x: wvQuery.canvasPos.x + 15,
+                {x: wvQuery.canvasPos.x,
                  y: wvQuery.canvasPos.y});
         });
         chkpt("drew curves");
@@ -179,12 +212,19 @@
                 ctx.fillStyle = '#0000FF';
             } else {
                 ctx.font = "14px Sans-Serif";
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                ctx.strokeText(
+                    wv.prettyWord,
+                    wv.canvasPos.x - wv.wordWidth/2,
+                    wv.canvasPos.y + 7
+                );
                 ctx.fillStyle = getWordColor(wv.word, lexiconSynonyms);
             }
             ctx.fillText(
-                wv.word.replace('_', ' ').replace('_', ' '),
-                wv.canvasPos.x,
-                wv.canvasPos.y
+                wv.prettyWord,
+                wv.canvasPos.x - wv.wordWidth/2,
+                wv.canvasPos.y + 7
             );
         }
         // Redraw query word so it's on top.
