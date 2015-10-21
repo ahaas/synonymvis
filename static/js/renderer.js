@@ -1,7 +1,7 @@
 !function() {
 
     function getWordColor(word, lexiconSynonyms) {
-        var count = 0
+        /*var count = 0
         _.each(lexiconSynonyms, function(synGroup) {
             if ($.inArray(word, synGroup.synonyms) != -1) {
                 count++;
@@ -11,7 +11,7 @@
         if (count == 1) return "#444";
         if (count == 2) return "#333";
         if (count == 3) return "#222";
-        if (count == 4) return "#111";
+        if (count == 4) return "#111";*/
         return "#000"
     }
 

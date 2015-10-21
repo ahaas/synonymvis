@@ -21,7 +21,7 @@ $(document).ready(function() {
     var getLexiconSynonyms = async.memoize(getLexiconSynonyms_);
 
     function getLexiconData_(word, cb) {
-        queryURL = 'http://104.197.10.176/translate/lexicon?' +
+        queryURL = 'http://104.154.63.16:8090/translate/lexicon?' +
                 $.param({query: word, source: 'en', target: 'es', synonym: true});
         $.getJSON(queryURL, function(data) {
             cb(null, data);
@@ -96,10 +96,19 @@ $(document).ready(function() {
                 wordsVectors[idx].proj = proj;
             })
             getLexiconData(inputWord, function(err, data) {
-                renderer.renderWordsVectors(
-                    document.getElementById('synonyms-canvas'),
+                function renderCanvas(someWordsVectors) {
+                    renderer.renderWordsVectors(
+                        document.getElementById('synonyms-canvas'),
+                        someWordsVectors,
+                        data.synonyms
+                    );
+                }
+                renderCanvas(wordsVectors)
+                syntable.renderWordsVectors(
+                    document.getElementById('syntable'),
                     wordsVectors,
-                    data.synonyms
+                    data.synonyms,
+                    renderCanvas
                 );
                 l.stop();
             });
