@@ -49,7 +49,7 @@
             '#CFCFC4', // gray
         ]
         var descendingSizeGroups = _.sortBy(lexiconSynonyms, function(group) {
-            return -group.synonyms.length;
+            return -group.synonyms.length-group.enabled*9999;
         })
         var out = [];
         _.each(lexiconSynonyms, function(synGroup, idx) {
@@ -63,6 +63,7 @@
                     (Math.floor((256-ml)*Math.random()) + ml) + ')';
                 out[idx] = new_light_color;
             }
+            synGroup.color = out[idx];
         });
         return out;
     }
@@ -73,7 +74,7 @@
         var CONTROL_RADIUS = 100;
         var wordGroupIdxs = [];
         _.each(lexiconSynonyms, function(synGroup, idx) {
-            if ($.inArray(wv.word, synGroup.synonyms) != -1) {
+            if ($.inArray(wv.word, synGroup.synonyms) != -1 && synGroup.enabled) {
                 wordGroupIdxs.push(idx);
             }
         });
@@ -148,9 +149,23 @@
         console.log((chkpt_time - t)/1000 + "s: " + msg);
     }
 
+    function wvInEnabledGroup(wv, lexiconSynonyms) {
+        for (var i=0; i<lexiconSynonyms.length; i++) {
+            var synGroup = lexiconSynonyms[i];
+            if (synGroup.enabled && (_.indexOf(synGroup.synonyms, wv.word)) != -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     window.renderer = {}
-    renderer.renderWordsVectors = function(canvas, wordsVectors, lexiconSynonyms) {
+    renderer.renderWordsVectors = function(canvas, wordsVectors, lexiconSynonyms, cb) {
         chkpt("starting render");
+        wordsVectors = _.filter(wordsVectors, function(wv) {
+            return wvInEnabledGroup(wv, lexiconSynonyms) ||
+                   wv.isQuery;
+        })
         getGroupStartAng.cache = {};
         getGroupIdxColorMap.cache = {};
 
@@ -168,10 +183,9 @@
         var maxY = _.max(wordsVectors, function(wv) { return wv.proj[1]; }).proj[1];
 
         // Compute transformation parameters
-        var scale = _.min([
-            canvas.height/(maxY - minY) * 0.95,
-            canvas.width/(maxX - minX) * 0.95,
-        ]);
+        var scaleY = canvas.height/(maxY - minY) * 0.90
+        var scaleX = canvas.width/(maxX - minX) * 0.90
+
         var translateX = -(minX + maxX)/2
         var translateY = -(minY + maxY)/2
         ctx.fillStyle = '#ffffff';
@@ -190,8 +204,8 @@
         // Compute canvas positions for each word
         _.each(wordsVectors, function(wv) {
             wv.canvasPos = {
-                x: (wv.proj[0]+translateX)*scale+canvas.width/2,
-                y: (wv.proj[1]+translateY)*scale+canvas.height/2
+                x: (wv.proj[0]+translateX)*scaleX+canvas.width/2,
+                y: (wv.proj[1]+translateY)*scaleY+canvas.height/2
             };
         });
         chkpt("generated canvasPos");
@@ -233,5 +247,6 @@
         });
         chkpt("drew words");
         renderWV(wvQuery);
+        cb();
     }
 }()

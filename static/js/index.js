@@ -96,20 +96,39 @@ $(document).ready(function() {
                 wordsVectors[idx].proj = proj;
             })
             getLexiconData(inputWord, function(err, data) {
-                function renderCanvas(someWordsVectors) {
-                    renderer.renderWordsVectors(
-                        document.getElementById('synonyms-canvas'),
-                        someWordsVectors,
-                        data.synonyms
+                var lexiconSynonyms = data.synonyms;
+                _.each(lexiconSynonyms, function(synGroup) {
+                    /*if (synGroup.dataSource == 'Wiktionnaire') {
+                        synGroup.enabled = true;
+                    } else {
+                        synGroup.enabled = false;
+                    }*/
+                    synGroup.enabled = true;
+                    console.log(synGroup);
+                });
+                function updateSynTable() {
+                    syntable.renderWordsVectors(
+                        document.getElementById('syntable'),
+                        wordsVectors,
+                        lexiconSynonyms,
+                        renderCanvas
                     );
                 }
-                renderCanvas(wordsVectors)
-                syntable.renderWordsVectors(
+                function renderCanvas() {
+                    renderer.renderWordsVectors(
+                        document.getElementById('synonyms-canvas'),
+                        wordsVectors,
+                        lexiconSynonyms,
+                        updateSynTable
+                    );
+                }
+                renderCanvas();
+                /*syntable.renderWordsVectors(
                     document.getElementById('syntable'),
                     wordsVectors,
-                    data.synonyms,
+                    lexiconSynonyms,
                     renderCanvas
-                );
+                );*/
                 l.stop();
             });
         });
