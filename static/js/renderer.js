@@ -49,7 +49,7 @@
             '#CFCFC4', // gray
         ]
         var descendingSizeGroups = _.sortBy(lexiconSynonyms, function(group) {
-            return -group.synonyms.length-group.enabled*9999;
+            return -group.synonyms.length;//-group.enabled*9999;
         })
         var out = [];
         _.each(lexiconSynonyms, function(synGroup, idx) {
@@ -85,13 +85,13 @@
                 y: centerPos.y + RADIUS * Math.sin(startAng)
             };
             var angDiff = Math.abs(startAng - Math.atan2(wv.canvasPos.y, wv.canvasPos.x));
-            console.log("angDiff: " + angDiff);
+            //console.log("angDiff: " + angDiff);
             var dist = Math.sqrt(Math.pow(start.x - wv.canvasPos.x, 2) + Math.pow(start.y - wv.canvasPos.y, 2));
             var controlRadius = BASE_CONTROL_RADIUS
             if (angDiff < Math.PI) {
                 controlRadius += dist * 0.9 * Math.pow((Math.PI - angDiff)/Math.PI, 0.9)
             }
-            console.log("ctrlRad: " + controlRadius);
+            //console.log("ctrlRad: " + controlRadius);
             var control = {
                 x: centerPos.x + controlRadius * Math.cos(startAng),
                 y: centerPos.y + controlRadius * Math.sin(startAng)

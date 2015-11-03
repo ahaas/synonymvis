@@ -31,7 +31,7 @@
                 htmlstr += '<td></td>'
             }
             htmlstr += '<td>' + synGroup.synonyms.join(', ') + '</td>';
-            
+
             var src = synGroup.dataSource;
             if (src != prevSource) {
                 htmlstr += '<td rowspan=' + numSource[synGroup.dataSource] + '>' + synGroup.dataSource;
