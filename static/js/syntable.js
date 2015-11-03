@@ -3,6 +3,16 @@
     syntable.renderWordsVectors = function(table, wordsVectors, lexiconSynonyms, renderCanvas) {
         var tableBody = $(table).find('tbody');
         var htmlstr = ''
+
+        // Build a map of: dataSource -> #synGroups
+        var numSource = {}
+        _.each(lexiconSynonyms, function(synGroup) {
+            var src = synGroup.dataSource;
+            numSource[src] = (numSource[src] || 0) + 1;
+        });
+        console.log(numSource); // TODO DELETE
+
+        var prevSource = ""
         _.each(lexiconSynonyms, function(synGroup, idx) {
             var inputId = 'toggle-group-' + idx;
             var isolateButtonId = 'isolate-source-' + idx;
@@ -21,12 +31,16 @@
                 htmlstr += '<td></td>'
             }
             htmlstr += '<td>' + synGroup.synonyms.join(', ') + '</td>';
-
-            htmlstr += '<td>' + synGroup.dataSource;
-            htmlstr += ' <button id="' + isolateButtonId + '" class="btn btn-default btn-xs">Isolate</button>';
-            //htmlstr += ' <button id="' + enableButtonId + '" class="btn btn-default btn-xs">Enable all</button>';
-            //htmlstr += ' <button id="' + disableButtonId + '" class="btn btn-default btn-xs">Disable all</button>';
-            htmlstr += '</td>';
+            
+            var src = synGroup.dataSource;
+            if (src != prevSource) {
+                htmlstr += '<td rowspan=' + numSource[synGroup.dataSource] + '>' + synGroup.dataSource;
+                htmlstr += ' <button id="' + isolateButtonId + '" class="btn btn-default btn-xs">Isolate</button>';
+                htmlstr += ' <button id="' + enableButtonId + '" class="btn btn-default btn-xs">Enable all</button>';
+                htmlstr += ' <button id="' + disableButtonId + '" class="btn btn-default btn-xs">Disable all</button>';
+                htmlstr += '</td>';
+                prevSource = src
+            }
             htmlstr += '</tr>';
         });
         tableBody.html(htmlstr);
