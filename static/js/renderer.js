@@ -71,7 +71,7 @@
 
     function drawBezierCurves(wv, wordsVectors, lexiconSynonyms, ctx, centerPos) {
         var RADIUS = 35;
-        var CONTROL_RADIUS = 100;
+        var BASE_CONTROL_RADIUS = 100;
         var wordGroupIdxs = [];
         _.each(lexiconSynonyms, function(synGroup, idx) {
             if ($.inArray(wv.word, synGroup.synonyms) != -1 && synGroup.enabled) {
@@ -84,9 +84,17 @@
                 x: centerPos.x + RADIUS * Math.cos(startAng),
                 y: centerPos.y + RADIUS * Math.sin(startAng)
             };
+            var angDiff = Math.abs(startAng - Math.atan2(wv.canvasPos.y, wv.canvasPos.x));
+            console.log("angDiff: " + angDiff);
+            var dist = Math.sqrt(Math.pow(start.x - wv.canvasPos.x, 2) + Math.pow(start.y - wv.canvasPos.y, 2));
+            var controlRadius = BASE_CONTROL_RADIUS
+            if (angDiff < Math.PI) {
+                controlRadius += dist * 0.9 * Math.pow((Math.PI - angDiff)/Math.PI, 0.9)
+            }
+            console.log("ctrlRad: " + controlRadius);
             var control = {
-                x: centerPos.x + CONTROL_RADIUS * Math.cos(startAng),
-                y: centerPos.y + CONTROL_RADIUS * Math.sin(startAng)
+                x: centerPos.x + controlRadius * Math.cos(startAng),
+                y: centerPos.y + controlRadius * Math.sin(startAng)
             };
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);
@@ -184,7 +192,7 @@
 
         // Compute transformation parameters
         var scaleY = canvas.height/(maxY - minY) * 0.90
-        var scaleX = canvas.width/(maxX - minX) * 0.90
+        var scaleX = canvas.width/(maxX - minX) * 0.80
 
         var translateX = -(minX + maxX)/2
         var translateY = -(minY + maxY)/2

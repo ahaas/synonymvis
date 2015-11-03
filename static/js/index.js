@@ -76,6 +76,16 @@ $(document).ready(function() {
         });
     }
 
+    function whollyContained(arr1, arr2) {
+        //console.log(arr1, arr2);
+        for (var i=0; i<arr1.length; i++) {
+            if (!_.contains(arr2, arr1[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     $('#input-form').submit(function(e) {
         e.preventDefault();
         var l = Ladda.create($('#input-word-button').get(0));
@@ -86,17 +96,11 @@ $(document).ready(function() {
                 l.stop();
                 return
             }
-            var vectors = _.pluck(wordsVectors, 'vector');
-            var tsne = new tsnejs.tSNE();
-            tsne.initDataRaw(vectors);
-            for (var i=0; i < 1000; i++) {
-                tsne.step();
-            }
-            _.each(tsne.getSolution(), function(proj, idx) {
-                wordsVectors[idx].proj = proj;
-            })
             getLexiconData(inputWord, function(err, data) {
                 var lexiconSynonyms = data.synonyms;
+                lexiconSynonyms = _.sortBy(lexiconSynonyms, function(synGroup) {
+                    return synGroup.dataSource;
+                });
                 _.each(lexiconSynonyms, function(synGroup) {
                     /*if (synGroup.dataSource == 'Wiktionnaire') {
                         synGroup.enabled = true;
@@ -104,7 +108,19 @@ $(document).ready(function() {
                         synGroup.enabled = false;
                     }*/
                     synGroup.enabled = true;
-                    console.log(synGroup);
+
+                    /* Filter out groups entirely contained in another. */
+                    _.each(lexiconSynonyms, function(synGroup2) {
+                        if (synGroup != synGroup2 &&
+                            whollyContained(synGroup.synonyms, synGroup2.synonyms)) {
+                                synGroup.enabled = false;
+                        }
+                    });
+
+                    /* Filter out groups with too few elements. */
+                    if (synGroup.synonyms.length < 2) {
+                        synGroup.enabled = false;
+                    }
                 });
                 function updateSynTable() {
                     syntable.renderWordsVectors(
@@ -115,6 +131,15 @@ $(document).ready(function() {
                     );
                 }
                 function renderCanvas() {
+                    var vectors = _.pluck(wordsVectors, 'vector');
+                    var tsne = new tsnejs.tSNE();
+                    tsne.initDataRaw(vectors);
+                    for (var i=0; i < 1000; i++) {
+                        tsne.step();
+                    }
+                    _.each(tsne.getSolution(), function(proj, idx) {
+                        wordsVectors[idx].proj = proj;
+                    })
                     renderer.renderWordsVectors(
                         document.getElementById('synonyms-canvas'),
                         wordsVectors,
