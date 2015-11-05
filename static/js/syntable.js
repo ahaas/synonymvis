@@ -1,3 +1,7 @@
+/* This file manages the displaying and functionality of the synonym
+ * table below the canvas.
+ * */
+
 !function() {
     window.syntable = {}
     syntable.renderWordsVectors = function(table, wordsVectors, lexiconSynonyms, renderCanvas) {
@@ -34,10 +38,10 @@
 
             var src = synGroup.dataSource;
             if (src != prevSource) {
-                htmlstr += '<td rowspan=' + numSource[synGroup.dataSource] + '>' + synGroup.dataSource;
+                htmlstr += '<td rowspan=' + numSource[synGroup.dataSource] + '>' + synGroup.dataSource + '<br/>';
                 htmlstr += ' <button id="' + isolateButtonId + '" class="btn btn-default btn-xs">Isolate</button>';
-                htmlstr += ' <button id="' + enableButtonId + '" class="btn btn-default btn-xs">Enable all</button>';
-                htmlstr += ' <button id="' + disableButtonId + '" class="btn btn-default btn-xs">Disable all</button>';
+                htmlstr += ' <button id="' + enableButtonId + '" class="btn btn-default btn-xs">Enable</button>';
+                htmlstr += ' <button id="' + disableButtonId + '" class="btn btn-default btn-xs">Disable</button>';
                 htmlstr += '</td>';
                 prevSource = src
             }

@@ -1,3 +1,5 @@
+/* The controller manages retrieving data and displaying it. */
+
 !function() {
     /**
      * Calls the Lexicon API to asynchronously get an array of synonyms.

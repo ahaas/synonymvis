@@ -1,3 +1,5 @@
+/* The renderer manages the renering of the canvas. */
+
 !function() {
 
     function getWordColor(word, lexiconSynonyms) {
@@ -170,6 +172,8 @@
     window.renderer = {}
     renderer.renderWordsVectors = function(canvas, wordsVectors, lexiconSynonyms, cb) {
         chkpt("starting render");
+
+        // Filter out words from disabled syngroups.
         wordsVectors = _.filter(wordsVectors, function(wv) {
             return wvInEnabledGroup(wv, lexiconSynonyms) ||
                    wv.isQuery;
@@ -184,21 +188,23 @@
             wv.wordWidth = ctx.measureText(wv.prettyWord).width;
         });
 
-        // Find bounds of TSNE projections
+        // Find bounds of TSNE projections.
         var minX = _.min(wordsVectors, function(wv) { return wv.proj[0]; }).proj[0];
         var maxX = _.max(wordsVectors, function(wv) { return wv.proj[0]; }).proj[0];
         var minY = _.min(wordsVectors, function(wv) { return wv.proj[1]; }).proj[1];
         var maxY = _.max(wordsVectors, function(wv) { return wv.proj[1]; }).proj[1];
 
-        // Compute transformation parameters
+        // Compute transformation parameters to fill the canvas.
         var scaleY = canvas.height/(maxY - minY) * 0.90
         var scaleX = canvas.width/(maxX - minX) * 0.80
-
         var translateX = -(minX + maxX)/2
         var translateY = -(minY + maxY)/2
+
+        // Clear the canvas.
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         var wvQuery;
+
         // Place query wv at the front
         _.all(wordsVectors, function(wv, idx) {
             if (wv.isQuery) {
@@ -209,6 +215,7 @@
             }
             return true;
         });
+
         // Compute canvas positions for each word
         _.each(wordsVectors, function(wv) {
             wv.canvasPos = {
@@ -217,17 +224,20 @@
             };
         });
         chkpt("generated canvasPos");
+
         // Spacially separate words that are too close together.
         decluster(wordsVectors);
         chkpt("declustered");
-        // Draw bezier curves first
+
+        // Draw bezier curves first.
         _.each(wordsVectors, function(wv) {
             drawBezierCurves(wv, wordsVectors, lexiconSynonyms, ctx,
                 {x: wvQuery.canvasPos.x,
                  y: wvQuery.canvasPos.y});
         });
         chkpt("drew curves");
-        // Draw words
+
+        // Draw words.
         function renderWV(wv) {
             if (wv.isQuery) {
                 ctx.font = "bold 16px Sans-Serif";
@@ -249,12 +259,12 @@
                 wv.canvasPos.y + 7
             );
         }
-        // Redraw query word so it's on top.
         _.each(wordsVectors, function(wv) {
             renderWV(wv);
         });
+        renderWV(wvQuery); // Redraw query word, so that it's on top.
         chkpt("drew words");
-        renderWV(wvQuery);
+
         cb();
     }
 }()
