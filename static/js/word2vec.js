@@ -1,5 +1,5 @@
 !function() {
-    W2V_API = 'http://104.154.63.16:5000/api/'
+    W2V_API = 'http://104.154.63.16/api/'
     /*
      * word2vec api functions pass an error value as the first argument
      * to the callback.
