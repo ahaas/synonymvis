@@ -117,7 +117,7 @@
         }
         function tooCloseX(wv1, wv2) {
             return Math.abs(wv1.canvasPos.x - wv2.canvasPos.x) <
-                   Math.abs(wv1.wordWidth/2 + wv2.wordWidth/2);
+                   Math.abs(wv1.wordWidth/2 + wv2.wordWidth/2) + 5;
         }
         function tooCloseY(wv1, wv2) {
             return Math.abs(wv1.canvasPos.y - wv2.canvasPos.y) < MINDIST_Y + 3;
