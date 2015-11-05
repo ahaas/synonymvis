@@ -214,6 +214,12 @@
         );
     }
     renderer.renderWordsVectors = function(canvas, wordsVectors, lexiconSynonyms, cb) {
+        /* Clone and replace the old canvas to quickly discard all
+         * previous listeners. */
+        var oldCanvas = canvas;
+        var canvas = oldCanvas.cloneNode(true);
+        oldCanvas.parentNode.replaceChild(canvas, oldCanvas);
+
         renderer._state.canvas = canvas;
         renderer._state.lexiconSynonyms = lexiconSynonyms;
 
