@@ -39,6 +39,8 @@
     }
     var getGroupStartAng = _.memoize(getGroupStartAng_);
 
+
+
     function getGroupIdxColorMap_(lexiconSynonyms) {
         var colorList = [
             '#FF6961', // red
@@ -57,7 +59,7 @@
         _.each(lexiconSynonyms, function(synGroup, idx) {
             var groupRank = _.indexOf(descendingSizeGroups, synGroup);
             if (groupRank < colorList.length) {
-                out[idx] = colorList[groupRank];
+                out[idx] = util.convertHex(colorList[groupRank]);
             } else {
                 var ml = 140;
                 var new_light_color = 'rgb(' + (Math.floor((255-ml)*Math.random()) + ml) + ',' +
@@ -75,25 +77,27 @@
         var RADIUS = 35;
         var BASE_CONTROL_RADIUS = 100;
         var wordGroupIdxs = [];
+        /* Find only synGroups containing this wv.word. */
         _.each(lexiconSynonyms, function(synGroup, idx) {
             if ($.inArray(wv.word, synGroup.synonyms) != -1 && synGroup.enabled) {
                 wordGroupIdxs.push(idx);
             }
         });
+
+        /* Draw a curve for each group to this wv. */
         _.each(wordGroupIdxs, function(groupIdx) {
+            var synGroup = lexiconSynonyms[groupIdx];
             var startAng = getGroupStartAng(groupIdx, wordsVectors, lexiconSynonyms);
             var start = {
                 x: centerPos.x + RADIUS * Math.cos(startAng),
                 y: centerPos.y + RADIUS * Math.sin(startAng)
             };
             var angDiff = Math.abs(startAng - Math.atan2(wv.canvasPos.y, wv.canvasPos.x));
-            //console.log("angDiff: " + angDiff);
             var dist = Math.sqrt(Math.pow(start.x - wv.canvasPos.x, 2) + Math.pow(start.y - wv.canvasPos.y, 2));
             var controlRadius = BASE_CONTROL_RADIUS
             if (angDiff < Math.PI) {
                 controlRadius += dist * 0.9 * Math.pow((Math.PI - angDiff)/Math.PI, 0.9)
             }
-            //console.log("ctrlRad: " + controlRadius);
             var control = {
                 x: centerPos.x + controlRadius * Math.cos(startAng),
                 y: centerPos.y + controlRadius * Math.sin(startAng)
@@ -101,13 +105,17 @@
             ctx.beginPath();
             ctx.moveTo(start.x, start.y);
             ctx.quadraticCurveTo(control.x, control.y, wv.canvasPos.x, wv.canvasPos.y);
-            ctx.strokeStyle = getGroupIdxColorMap(lexiconSynonyms)[groupIdx];
+            var color = getGroupIdxColorMap(lexiconSynonyms)[groupIdx];
+            if (synGroup.dimmed) {
+                ctx.strokeStyle = util.shadeRGBColor(color, 0.7);
+            } else {
+                ctx.strokeStyle = color;
+            }
             ctx.lineWidth = 2;
             ctx.stroke();
         });
     }
 
-    // TODO: Use ctx.measureText()
     function decluster(wordsVectors) {
         var MINDIST_X = 50;
         var MINDIST_Y = 14
@@ -152,6 +160,23 @@
         }
     }
 
+    function constructHoverShapes(wordsVectors) {
+        var PADDING = 5
+        var shapes = [];
+        _.each(wordsVectors, function(wv) {
+            shapes.push(
+                {
+                    x1: wv.canvasPos.x - wv.wordWidth/2 - PADDING,
+                    y1: wv.canvasPos.y - 7 - PADDING,
+                    x2: wv.canvasPos.x + wv.wordWidth/2 + PADDING,
+                    y2: wv.canvasPos.y + 7 + PADDING,
+                    wv: wv,
+                }
+            )
+        });
+        return shapes;
+    }
+
     var chkpt_time = (new Date()).getTime()
     function chkpt(msg) {
         var t = chkpt_time;
@@ -159,25 +184,47 @@
         console.log((chkpt_time - t)/1000 + "s: " + msg);
     }
 
-    function wvInEnabledGroup(wv, lexiconSynonyms) {
-        for (var i=0; i<lexiconSynonyms.length; i++) {
-            var synGroup = lexiconSynonyms[i];
-            if (synGroup.enabled && (_.indexOf(synGroup.synonyms, wv.word)) != -1) {
-                return true;
+    function wvInGroupWithProperty(wv, property) {
+        for (var i=0; i<wv.synGroups.length; i++) {
+            if (wv.synGroups[i][property]) {
+                return true
             }
         }
-        return false;
+        return false
+    }
+
+    /* A wv is dimmed unless one of its synGroups is not. */
+    function wvIsDimmed(wv) {
+        for (var i=0; i<wv.synGroups.length; i++) {
+            if (wv.synGroups[i].enabled && !wv.synGroups[i].dimmed) {
+                return false
+            }
+        }
+        return true
     }
 
     window.renderer = {}
+    renderer._state = {}
+    renderer.refreshCanvas = function() {
+        /* Rerender without changes to any positions, enabled groups. */
+        renderer._renderCanvas(
+                renderer._state.wordsVectors,
+                renderer._state.lexiconSynonyms,
+                renderer._state.canvas
+        );
+    }
     renderer.renderWordsVectors = function(canvas, wordsVectors, lexiconSynonyms, cb) {
+        renderer._state.canvas = canvas;
+        renderer._state.lexiconSynonyms = lexiconSynonyms;
+
         chkpt("starting render");
 
         // Filter out words from disabled syngroups.
         wordsVectors = _.filter(wordsVectors, function(wv) {
-            return wvInEnabledGroup(wv, lexiconSynonyms) ||
+            return wvInGroupWithProperty(wv, 'enabled') ||
                    wv.isQuery;
         })
+        renderer._state.wordsVectors = wordsVectors;
         getGroupStartAng.cache = {};
         getGroupIdxColorMap.cache = {};
 
@@ -199,11 +246,6 @@
         var scaleX = canvas.width/(maxX - minX) * 0.80
         var translateX = -(minX + maxX)/2
         var translateY = -(minY + maxY)/2
-
-        // Clear the canvas.
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        var wvQuery;
 
         // Place query wv at the front
         _.all(wordsVectors, function(wv, idx) {
@@ -229,8 +271,66 @@
         decluster(wordsVectors);
         chkpt("declustered");
 
+        var hoverShapes = constructHoverShapes(wordsVectors); /* TODO implement func */
+        var _currentHoverShape = null;
+        canvas.addEventListener('mousemove', function(evt) {
+            var rect = canvas.getBoundingClientRect();
+            var mpos = {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            }
+            var shape;
+            for (var i=0; i<hoverShapes.length; i++) {
+                shape = hoverShapes[i];
+                if (mpos.x > shape.x1 && mpos.x < shape.x2 &&
+                    mpos.y > shape.y1 && mpos.y < shape.y2) {
+
+                    if (_currentHoverShape === shape) {
+                        return;
+                    }
+
+                    _currentHoverShape = shape;
+                    _.each(lexiconSynonyms, function(synGroup, idx) {
+                        synGroup.dimmed = !_.contains(
+                                shape.wv.synGroupIdxs,
+                                idx
+                        );
+                    });
+                    renderer.refreshCanvas();
+                    return;
+                }
+            }
+            if (_currentHoverShape !== null) {
+                _currentHoverShape = null;
+                _.each(lexiconSynonyms, function(synGroup, idx) { synGroup.dimmed = false; });
+                renderer.refreshCanvas();
+            }
+        });
+        chkpt("constructed hover shapes");
+
+        renderer._renderCanvas(wordsVectors, lexiconSynonyms, canvas);
+
+        cb();
+    }
+
+    /* Render on the canvas assuming wordsVectors already contains all
+     * necessary precomputed values. */
+    renderer._renderCanvas = function(wordsVectors, lexiconSynonyms, canvas) {
+        chkpt("starting _renderCanvas");
+        var ctx = canvas.getContext('2d');
+        var wvQuery = wordsVectors[0];
+
+        var wordsVectorsDimmedLast = _.sortBy(wordsVectors, function(wv) {
+            return wvIsDimmed(wv) ? 0 : 1;
+        });
+
+        // Clear the canvas.
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        var wvQuery;
+
         // Draw bezier curves first.
-        _.each(wordsVectors, function(wv) {
+        _.each(wordsVectorsDimmedLast, function(wv) {
             drawBezierCurves(wv, wordsVectors, lexiconSynonyms, ctx,
                 {x: wvQuery.canvasPos.x,
                  y: wvQuery.canvasPos.y});
@@ -244,14 +344,18 @@
                 ctx.fillStyle = '#0000FF';
             } else {
                 ctx.font = "14px Sans-Serif";
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-                ctx.strokeText(
-                    wv.prettyWord,
-                    wv.canvasPos.x - wv.wordWidth/2,
-                    wv.canvasPos.y + 7
-                );
-                ctx.fillStyle = getWordColor(wv.word, lexiconSynonyms);
+                if (wvIsDimmed(wv)) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                } else {
+                    ctx.fillStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                    ctx.strokeText(
+                        wv.prettyWord,
+                        wv.canvasPos.x - wv.wordWidth/2,
+                        wv.canvasPos.y + 7
+                    );
+                }
             }
             ctx.fillText(
                 wv.prettyWord,
@@ -264,7 +368,5 @@
         });
         renderWV(wvQuery); // Redraw query word, so that it's on top.
         chkpt("drew words");
-
-        cb();
     }
 }()

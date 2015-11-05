@@ -62,6 +62,20 @@
         return true;
     }
 
+    function annotateWVSynGroups(wordsVectors, lexiconSynonyms) {
+        /* Add wv.synGroupIdxs array to each wordVector. */
+        _.each(wordsVectors, function(wv) {
+            wv.synGroupIdxs = [];
+            wv.synGroups = [];
+            _.each(lexiconSynonyms, function(synGroup, idx) {
+                if (_.contains(synGroup.synonyms, wv.word)) {
+                    wv.synGroupIdxs.push(idx);
+                    wv.synGroups.push(synGroup);
+                }
+            });
+        });
+    }
+
     window.controller = {}
     controller.update = function(inputWord, randomSeed, synGroupIdxs, updateUrl, cb) {
         getWordsAndVectors(inputWord, function(err, wordsVectors, lexiconData) {
@@ -93,7 +107,9 @@
                         synGroup.enabled = false;
                     }
                 }
+                synGroup.dimmed = false;
             });
+            annotateWVSynGroups(wordsVectors, lexiconSynonyms);
             function updateSynTable() {
                 syntable.renderWordsVectors(
                     document.getElementById('syntable'),
